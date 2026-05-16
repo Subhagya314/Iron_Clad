@@ -1,5 +1,6 @@
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { SideNavId } from '../../navigation/routes'
+import { useTheme } from '../../lib/theme'
 import { Icon } from '../ui/Icon'
 
 type DocumentRow = {
@@ -17,6 +18,21 @@ type Props = {
   onAddDocument: () => void
   uploading?: boolean
   draftCount?: number
+}
+
+function DarkModeFooterButton() {
+  const { isDark, toggleDarkMode } = useTheme()
+  return (
+    <button
+      type="button"
+      aria-pressed={isDark}
+      onClick={toggleDarkMode}
+      className="flex w-full items-center gap-3 rounded px-3 py-2 text-on-surface-variant hover:bg-surface-container-high"
+    >
+      <Icon name={isDark ? 'light_mode' : 'dark_mode'} />
+      <span className="text-xs font-semibold">{isDark ? 'Light mode' : 'Dark mode'}</span>
+    </button>
+  )
 }
 
 const SIDE_ITEMS: { id: SideNavId; icon: string; label: string; iconClass?: string }[] = [
@@ -114,10 +130,7 @@ export function LeftSidebar({
           <Icon name="help" />
           <span className="text-xs font-semibold">Support</span>
         </button>
-        <button type="button" className="flex w-full items-center gap-3 rounded px-3 py-2 text-on-surface-variant hover:bg-surface-container-high">
-          <Icon name="dark_mode" />
-          <span className="text-xs font-semibold">Dark Mode</span>
-        </button>
+        <DarkModeFooterButton />
       </div>
     </aside>
   )
