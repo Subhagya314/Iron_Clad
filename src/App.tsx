@@ -10,15 +10,12 @@ import { DashboardRightPanel } from './components/layout/panels/DashboardRightPa
 import { SimpleRightPanel } from './components/layout/panels/SimpleRightPanel'
 import { WorkspaceRightPanel } from './components/layout/panels/WorkspaceRightPanel'
 import type { OverlayBox } from './components/pdf-viewer/RedactionOverlay'
-import { CollaboratorList } from './components/presence/CollaboratorList'
-import { PresenceBadge } from './components/presence/PresenceBadge'
 import { getStoredActiveGroupId, setStoredActiveGroupId } from './lib/activeGroupId'
 import { isConvexConfigured } from './lib/convexClient'
 import { useDocumentUpload } from './lib/hooks/useDocumentUpload'
 import { usePresenceHeartbeat } from './lib/hooks/usePresenceHeartbeat'
 import { exportRedactedPdf } from './lib/pdf/exportRedactedPdf'
 import {
-  clearStoredUserEmail,
   getStoredUserEmail,
   setStoredUserEmail,
 } from './lib/userEmail'
@@ -28,6 +25,8 @@ import { BatchPage } from './pages/BatchPage'
 import { ConflictsPage } from './pages/ConflictsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { SettingsPage } from './pages/SettingsPage'
+import { TeamsPage } from './pages/TeamsPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 import { toRedactionExportBox } from './types/redaction'
 
@@ -181,10 +180,10 @@ function MainApp() {
   const activeGroupMeta = myGroups?.find(({ group }) => group._id === activeGroupId)
   const isGroupAdmin = activeGroupMeta?.role === 'admin'
 
-  const setGroupScope = (id: string | null) => {
+  const setGroupScope = useCallback((id: string | null) => {
     setActiveGroupId(id)
     setStoredActiveGroupId(id)
-  }
+  }, [])
 
   const onAddDocument = () => fileInputRef.current?.click()
 
@@ -298,90 +297,12 @@ function MainApp() {
     }
   }
 
-  const convexBanner = (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <PresenceBadge label={convexReady ? 'Convex URL set' : 'Set VITE_CONVEX_URL'} />
-          <span className="text-xs text-zinc-500">
-            Editing as <code className="rounded bg-zinc-100 px-1 py-0.5">{userEmail}</code>
-          </span>
-          <button
-            type="button"
-            className="text-sm text-zinc-600 underline-offset-2 hover:underline"
-            onClick={() => {
-              clearStoredUserEmail()
-              window.location.reload()
-            }}
-          >
-            Change email
-          </button>
-        </div>
-        {!convexReady && (
-          <p className="mt-2 text-sm text-amber-800">
-            Run <code className="rounded bg-amber-50 px-1">npx convex dev</code>, then add{' '}
-            <code className="rounded bg-amber-50 px-1">VITE_CONVEX_URL</code> to{' '}
-            <code className="rounded bg-amber-50 px-1">.env.local</code>.
-          </p>
-        )}
+  const uploadFailureNotice =
+    uploadError !== null ? (
+      <div className="mb-4 rounded border border-error-container bg-error-container px-4 py-3 text-sm text-on-error-container">
+        {uploadError}
       </div>
-
-      {['workspace', 'dashboard', 'annotations', 'batch'].includes(route) && (
-        <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-medium text-zinc-800">New uploads go to</h2>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setGroupScope(null)}
-              className={`rounded-md border px-3 py-1.5 text-sm ${
-                activeGroupId === null
-                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                  : 'border-zinc-300 bg-white text-zinc-700'
-              }`}
-            >
-              Personal
-            </button>
-            {myGroups?.map(({ group }) => (
-              <button
-                key={group._id}
-                type="button"
-                onClick={() => setGroupScope(group._id)}
-                className={`rounded-md border px-3 py-1.5 text-sm ${
-                  activeGroupId === group._id
-                    ? 'border-zinc-900 bg-zinc-900 text-white'
-                    : 'border-zinc-300 bg-white text-zinc-700'
-                }`}
-              >
-                {group.name}
-              </button>
-            ))}
-          </div>
-          {convexReady && (
-            <form className="mt-3 flex flex-wrap gap-2" onSubmit={(e) => void onCreateGroup(e)}>
-              <input
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                placeholder="New group name"
-                className="min-w-[12rem] flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
-              />
-              <button
-                type="submit"
-                className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-800"
-              >
-                Create group
-              </button>
-            </form>
-          )}
-        </section>
-      )}
-
-      {uploadError ? (
-        <div className="rounded border border-error-container bg-error-container px-4 py-3 text-sm text-on-error-container">
-          {uploadError}
-        </div>
-      ) : null}
-    </div>
-  )
+    ) : null
 
   const rightPanel = useMemo(() => {
     switch (route) {
@@ -405,8 +326,8 @@ function MainApp() {
       case 'team':
         return (
           <SimpleRightPanel
-            title="Team"
-            description="Manage reviewers, roles, and case assignments."
+            title="Teams"
+            description="Set where uploads go and invite colleagues. Presence for the open document stays in the Workspace panel."
           />
         )
       case 'archive':
@@ -415,7 +336,10 @@ function MainApp() {
         )
       case 'settings':
         return (
-          <SimpleRightPanel title="Settings" description="Workspace preferences and security." />
+          <SimpleRightPanel
+            title="Settings"
+            description="Manage your session email and Convex connection in the main area."
+          />
         )
       default:
         return null
@@ -454,73 +378,30 @@ function MainApp() {
         return <BatchPage />
       case 'team':
         return (
-          <div className="space-y-6">
-            {convexReady && activeGroupId ? (
-              <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-2 text-sm font-medium text-zinc-800">Group members</h2>
-                <ul className="mb-3 flex flex-col gap-1 text-sm text-zinc-700">
-                  {membersForActiveGroup?.map((m) => (
-                    <li key={m._id} className="flex items-center justify-between gap-2">
-                      <span>
-                        {m.userId}
-                        {m.role === 'admin' ? (
-                          <span className="ml-1 text-xs text-zinc-500">(admin)</span>
-                        ) : null}
-                      </span>
-                      {(isGroupAdmin && m.userId !== userEmail) || m.userId === userEmail ? (
-                        <button
-                          type="button"
-                          className="text-xs text-red-600 hover:underline"
-                          onClick={() =>
-                            void removeMember({
-                              groupId: activeGroupId as Id<'groups'>,
-                              targetEmail: m.userId,
-                              userEmail,
-                            })
-                          }
-                        >
-                          {m.userId === userEmail ? 'Leave' : 'Remove'}
-                        </button>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-                {isGroupAdmin ? (
-                  <form className="flex flex-wrap gap-2" onSubmit={(e) => void onAddMember(e)}>
-                    <input
-                      type="email"
-                      value={addMemberEmail}
-                      onChange={(e) => setAddMemberEmail(e.target.value)}
-                      placeholder="colleague@firm.com"
-                      className="min-w-[12rem] flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-800"
-                    >
-                      Add member
-                    </button>
-                  </form>
-                ) : (
-                  <p className="text-xs text-zinc-500">Only admins can add members.</p>
-                )}
-                {memberFeedback && <p className="mt-2 text-sm text-red-600">{memberFeedback}</p>}
-              </section>
-            ) : (
-              <p className="text-sm text-zinc-600">
-                Select a group from the banner above (Personal uploads use your email only).
-              </p>
-            )}
-            <PlaceholderPage
-              title="Team"
-              description="Collaborator roster, permissions, and workload — extend here."
-              icon="groups"
-            />
-            <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-              <h2 className="mb-2 text-sm font-medium text-zinc-800">Here now (current document)</h2>
-              <CollaboratorList collaborators={collaborators} />
-            </section>
-          </div>
+          <TeamsPage
+            convexReady={convexReady}
+            userEmail={userEmail}
+            myGroups={myGroups}
+            activeGroupId={activeGroupId}
+            onSelectScope={setGroupScope}
+            newGroupName={newGroupName}
+            onNewGroupNameChange={setNewGroupName}
+            onCreateGroup={onCreateGroup}
+            membersForActiveGroup={membersForActiveGroup}
+            isGroupAdmin={isGroupAdmin}
+            addMemberEmail={addMemberEmail}
+            onAddMemberEmailChange={setAddMemberEmail}
+            onAddMember={onAddMember}
+            memberFeedback={memberFeedback}
+            onRemoveMember={(targetEmail) => {
+              if (!activeGroupId) return
+              void removeMember({
+                groupId: activeGroupId as Id<'groups'>,
+                targetEmail,
+                userEmail,
+              })
+            }}
+          />
         )
       case 'archive':
         return (
@@ -531,13 +412,7 @@ function MainApp() {
           />
         )
       case 'settings':
-        return (
-          <PlaceholderPage
-            title="Settings"
-            description="Application and workspace configuration."
-            icon="settings"
-          />
-        )
+        return <SettingsPage userEmail={userEmail} convexReady={convexReady} />
       default:
         return null
     }
@@ -548,15 +423,18 @@ function MainApp() {
     convexReady,
     documentId,
     onCreateBox,
-    collaborators,
     activeGroupId,
+    myGroups,
     membersForActiveGroup,
     isGroupAdmin,
     userEmail,
+    newGroupName,
     addMemberEmail,
     memberFeedback,
+    onCreateGroup,
     onAddMember,
     removeMember,
+    setGroupScope,
   ])
 
   return (
@@ -571,7 +449,7 @@ function MainApp() {
       uploading={uploading}
       draftCount={draftCount}
       onExportClick={onExport}
-      convexBanner={convexBanner}
+      mainNotice={uploadFailureNotice}
     >
       <input
         ref={fileInputRef}

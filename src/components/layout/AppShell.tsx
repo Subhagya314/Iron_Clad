@@ -20,7 +20,8 @@ type Props = {
   uploading?: boolean
   draftCount?: number
   onExportClick?: () => void
-  convexBanner?: ReactNode
+  /** Optional notices above routed page content (e.g. upload failures). */
+  mainNotice?: ReactNode
 }
 
 export function AppShell({
@@ -35,7 +36,7 @@ export function AppShell({
   uploading,
   draftCount,
   onExportClick,
-  convexBanner,
+  mainNotice,
 }: Props) {
   const activeTopNav = topNavForRoute(route)
   const activeSideNav = sideNavForRoute(route)
@@ -58,7 +59,7 @@ export function AppShell({
       />
       {rightPanel}
       <main className="fixed bottom-0 left-64 right-80 top-14 overflow-auto bg-surface-dim p-gutter">
-        {convexBanner}
+        {mainNotice}
         {children}
       </main>
     </div>
