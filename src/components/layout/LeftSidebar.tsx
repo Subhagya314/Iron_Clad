@@ -1,5 +1,6 @@
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { SideNavId } from '../../navigation/routes'
+import { useTheme } from '../../lib/theme'
 import { Icon } from '../ui/Icon'
 
 type DocumentRow = {
@@ -22,6 +23,21 @@ type Props = {
   workspaceSubtitle?: string
   /** Short label in the badge (e.g. doc count or initials). */
   badgeLabel: string
+}
+
+function DarkModeFooterButton() {
+  const { isDark, toggleDarkMode } = useTheme()
+  return (
+    <button
+      type="button"
+      aria-pressed={isDark}
+      onClick={toggleDarkMode}
+      className="flex w-full items-center gap-3 rounded px-3 py-2 text-on-surface-variant hover:bg-surface-container-high"
+    >
+      <Icon name={isDark ? 'light_mode' : 'dark_mode'} />
+      <span className="text-xs font-semibold">{isDark ? 'Light mode' : 'Dark mode'}</span>
+    </button>
+  )
 }
 
 const SIDE_ITEMS: { id: SideNavId; icon: string; label: string; iconClass?: string }[] = [
@@ -116,6 +132,10 @@ export function LeftSidebar({
           </div>
         )}
       </nav>
+
+      <div className="border-t border-outline-variant bg-surface-container-low p-2">
+        <DarkModeFooterButton />
+      </div>
     </aside>
   )
 }
