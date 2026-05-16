@@ -6,6 +6,7 @@ import { api } from '../../convex/_generated/api'
 import { isConvexConfigured } from '../lib/convexClient'
 import { clearStoredSessionToken } from '../lib/sessionToken'
 import type { ThemePreference } from '../lib/theme'
+import { useRedactionPrefs } from '../lib/redactionPrefs'
 import { useTheme } from '../lib/theme'
 
 type Props = {
@@ -42,6 +43,13 @@ export function SettingsPage({
   const exemptionCodes = useQuery(api.exemptionCodes.list, convexReady ? {} : 'skip')
   const seedDefaults = useMutation(api.exemptionCodes.seedDefaults)
   const { preference, setPreference, isDark } = useTheme()
+  const {
+    fillColor,
+    watermark,
+    setWatermarkEnabled,
+    setWatermarkText,
+    setWatermarkOpacity,
+  } = useRedactionPrefs()
 
   const [nameDraft, setNameDraft] = useState(displayName ?? '')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -211,6 +219,70 @@ export function SettingsPage({
               Current look: <span className="font-medium text-on-surface">{isDark ? 'Dark' : 'Light'}</span>
               {preference === 'system' ? ' (from your device)' : ''}
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-outline-variant bg-surface-bright p-6 shadow-sm">
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
+            <Icon name="ink_eraser" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-on-surface">Redaction &amp; export</h2>
+            <p className="mt-0.5 text-xs text-on-surface-variant">
+              Pick fill color in the workspace toolbar. Watermark is stamped on every exported page.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <span className="text-xs text-on-surface-variant">Current fill</span>
+              <span
+                className="inline-block size-8 rounded border border-outline-variant"
+                style={{ backgroundColor: fillColor }}
+                title={fillColor}
+              />
+              <code className="text-xs text-on-surface">{fillColor}</code>
+            </div>
+            <div className="mt-6 space-y-4 border-t border-outline-variant pt-6">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-on-surface">
+                <input
+                  type="checkbox"
+                  checked={watermark.enabled}
+                  onChange={(e) => setWatermarkEnabled(e.target.checked)}
+                  className="size-4 rounded border-outline-variant"
+                />
+                Add watermark on export
+              </label>
+              <label className="block text-sm text-on-surface">
+                <span className="text-xs font-medium text-on-surface-variant">Watermark text</span>
+                <input
+                  type="text"
+                  value={watermark.text}
+                  disabled={!watermark.enabled}
+                  maxLength={80}
+                  onChange={(e) => setWatermarkText(e.target.value)}
+                  placeholder="CONFIDENTIAL"
+                  className="mt-1 w-full rounded-lg border border-outline-variant bg-background px-3 py-2 text-sm disabled:opacity-50"
+                />
+              </label>
+              <label className="block text-sm text-on-surface">
+                <span className="text-xs font-medium text-on-surface-variant">
+                  Opacity ({Math.round(watermark.opacity * 100)}%)
+                </span>
+                <input
+                  type="range"
+                  min={5}
+                  max={60}
+                  value={Math.round(watermark.opacity * 100)}
+                  disabled={!watermark.enabled}
+                  onChange={(e) => setWatermarkOpacity(Number(e.target.value) / 100)}
+                  className="mt-2 w-full disabled:opacity-50"
+                />
+              </label>
+              <p className="text-[11px] text-on-surface-variant">
+                Enable to preview the watermark in the workspace. Boxes extend 5% below your selection
+                for safer coverage.
+              </p>
+            </div>
           </div>
         </div>
       </section>

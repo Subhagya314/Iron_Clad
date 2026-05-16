@@ -19,12 +19,13 @@ export function RedactionGuidance() {
           that step is not done inside this app.
         </p>
         <p>
-          <strong className="text-on-surface">Preview export</strong> draws black rectangles for
-          reading only — text under them can still be copied.
+          <strong className="text-on-surface">Export</strong> turns any page that has redaction boxes
+          into a single image (text is burned in — it cannot be copied). Pages you did not mark up
+          stay normal, selectable PDF. Choose fill color in the toolbar; optional watermark in
+          Settings.
         </p>
-        <p>
-          <strong className="text-on-surface">Release export</strong> flattens only the redacted
-          regions to image patches; the rest of the page stays normal PDF text. Use Release for production.
+        <p className="text-xs">
+          Boxes extend slightly below your selection so lines are fully covered.
         </p>
         <p className="text-xs">
           Browser Ctrl+A does not perform secure redaction; use Marquee or Select text tools to mark

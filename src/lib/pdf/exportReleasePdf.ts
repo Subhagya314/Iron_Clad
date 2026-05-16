@@ -1,16 +1,21 @@
 import * as pdfjs from 'pdfjs-dist'
-import { PDFDocument, rgb } from 'pdf-lib'
-import { normalizedToPdfLibRect } from './coordinateMap'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { setupPdfWorker } from './setupPdfWorker'
 import type { PageRedactions, RedactionExportBox } from './exportVisualRedactionPreview'
+import { drawWatermarkOnCanvas, drawWatermarkOnPdfPage, type WatermarkExportOptions } from './exportWatermark'
 
 setupPdfWorker()
 
-/** Higher scale = sharper redaction patch images. */
+/** Higher scale = sharper rasterized release pages. */
 const RELEASE_RASTER_SCALE = 2
 const MIN_BOX_PX = 4
 
 export type { PageRedactions }
+
+export type ReleaseExportOptions = {
+  fillColor?: string
+  watermark?: WatermarkExportOptions | null
+}
 
 async function loadPdfFromBytes(bytes: ArrayBuffer): Promise<pdfjs.PDFDocumentProxy> {
   return pdfjs.getDocument({ data: bytes.slice(0) }).promise
@@ -21,7 +26,7 @@ function canvasToPngBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          reject(new Error('Failed to encode redaction patch'))
+          reject(new Error('Failed to encode release page image'))
           return
         }
         void blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)))
@@ -64,54 +69,21 @@ async function renderPageToCanvas(
   }
 }
 
-/**
- * Burn each redaction region to a small PNG patch and place it on the page.
- * The rest of the page stays vector/text from the source PDF.
- */
-async function applyRedactionPatches(
-  outDoc: PDFDocument,
-  outPage: ReturnType<PDFDocument['addPage']>,
-  sourceCanvas: HTMLCanvasElement,
+function burnRedactionsOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  boxes: RedactionExportBox[],
   viewportWidth: number,
   viewportHeight: number,
-  boxes: RedactionExportBox[],
-  pageWidthPts: number,
-  pageHeightPts: number,
-): Promise<void> {
+  fillColor: string,
+): void {
+  ctx.fillStyle = fillColor
   for (const box of boxes) {
-    const left = Math.floor(box.x * viewportWidth)
-    const top = Math.floor(box.y * viewportHeight)
-    const w = Math.floor(box.width * viewportWidth)
-    const h = Math.floor(box.height * viewportHeight)
+    const left = box.x * viewportWidth
+    const top = box.y * viewportHeight
+    const w = box.width * viewportWidth
+    const h = box.height * viewportHeight
     if (w < MIN_BOX_PX || h < MIN_BOX_PX) continue
-
-    const crop = document.createElement('canvas')
-    crop.width = w
-    crop.height = h
-    const cropCtx = crop.getContext('2d')
-    if (!cropCtx) continue
-
-    cropCtx.drawImage(sourceCanvas, left, top, w, h, 0, 0, w, h)
-    cropCtx.fillStyle = '#000000'
-    cropCtx.fillRect(0, 0, w, h)
-
-    const pngBytes = await canvasToPngBytes(crop)
-    const image = await outDoc.embedPng(pngBytes)
-    const r = normalizedToPdfLibRect(box, pageWidthPts, pageHeightPts)
-
-    outPage.drawRectangle({
-      x: r.x,
-      y: r.y,
-      width: r.width,
-      height: r.height,
-      color: rgb(0, 0, 0),
-    })
-    outPage.drawImage(image, {
-      x: r.x,
-      y: r.y,
-      width: r.width,
-      height: r.height,
-    })
+    ctx.fillRect(left, top, w, h)
   }
 }
 
@@ -125,16 +97,23 @@ function stripDocumentMetadata(doc: PDFDocument): void {
 }
 
 /**
- * Release export: only redacted regions are flattened to image patches.
- * Unredacted page content remains selectable/copyable from the source PDF.
+ * Release export: pages with redactions become a single image (text burned in).
+ * Pages without redactions are copied as vector PDF (text remains selectable).
  */
 export async function exportReleaseRedactedPdf(
   originalPdfBytes: ArrayBuffer,
   byPage: PageRedactions[],
+  options: ReleaseExportOptions = {},
 ): Promise<Uint8Array> {
+  const fillColor = options.fillColor ?? '#000000'
+  const watermark = options.watermark ?? null
+
   const pdfjsDoc = await loadPdfFromBytes(originalPdfBytes)
   const srcDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: true })
   const outDoc = await PDFDocument.create()
+  const watermarkFont = watermark
+    ? await outDoc.embedFont(StandardFonts.HelveticaBold)
+    : null
 
   const boxesByPage = new Map<number, RedactionExportBox[]>()
   for (const { pageIndex, boxes } of byPage) {
@@ -149,21 +128,28 @@ export async function exportReleaseRedactedPdf(
       if (boxes && boxes.length > 0) {
         const { canvas, viewportWidth, viewportHeight, widthPts, heightPts } =
           await renderPageToCanvas(pdfjsDoc, pageIndex)
-        const [copied] = await outDoc.copyPages(srcDoc, [pageIndex])
-        const outPage = outDoc.addPage(copied)
-        await applyRedactionPatches(
-          outDoc,
-          outPage,
-          canvas,
-          viewportWidth,
-          viewportHeight,
-          boxes,
-          widthPts,
-          heightPts,
-        )
+        const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error('2D canvas context unavailable')
+        burnRedactionsOnCanvas(ctx, boxes, viewportWidth, viewportHeight, fillColor)
+        if (watermark) {
+          drawWatermarkOnCanvas(ctx, viewportWidth, viewportHeight, watermark)
+        }
+
+        const pngBytes = await canvasToPngBytes(canvas)
+        const image = await outDoc.embedPng(pngBytes)
+        const page = outDoc.addPage([widthPts, heightPts])
+        page.drawImage(image, {
+          x: 0,
+          y: 0,
+          width: widthPts,
+          height: heightPts,
+        })
       } else {
         const [copied] = await outDoc.copyPages(srcDoc, [pageIndex])
-        outDoc.addPage(copied)
+        const page = outDoc.addPage(copied)
+        if (watermark && watermarkFont) {
+          await drawWatermarkOnPdfPage(page, watermarkFont, watermark)
+        }
       }
     }
   } finally {

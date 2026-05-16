@@ -42,6 +42,10 @@ export async function canAccessDocument(
   document: Doc<"documents"> | null,
 ): Promise<boolean> {
   if (!document) return false;
+  if (!document.caseId) {
+    const email = normalizeEmail(userEmail);
+    return document.createdBy === email;
+  }
   return await canAccessCase(ctx, userEmail, document.caseId);
 }
 

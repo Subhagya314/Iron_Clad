@@ -93,7 +93,7 @@ export function LeftSidebar({
   }
 
   return (
-    <aside className="fixed left-0 top-14 z-40 flex h-[calc(100vh-3.5rem)] w-64 flex-col overflow-y-auto border-r border-outline-variant bg-surface-bright">
+    <aside className="flex h-full w-full flex-col overflow-y-auto bg-surface-bright">
       <div className="space-y-2 border-b border-outline-variant p-4">
         <button
           type="button"

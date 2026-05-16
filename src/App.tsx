@@ -21,8 +21,8 @@ import { isConvexConfigured } from './lib/convexClient'
 import { enhanceConvexActionError } from './lib/convexErrors'
 import { useDocumentUpload } from './lib/hooks/useDocumentUpload'
 import { usePresenceHeartbeat } from './lib/hooks/usePresenceHeartbeat'
-import { exportVisualRedactionPreview } from './lib/pdf/exportVisualRedactionPreview'
 import { exportReleaseRedactedPdf } from './lib/pdf/exportReleasePdf'
+import { useRedactionPrefs } from './lib/redactionPrefs'
 import type { AppRoute } from './navigation/routes'
 import { AnnotationsPage } from './pages/AnnotationsPage'
 import { BatchPage } from './pages/BatchPage'
@@ -111,6 +111,7 @@ function MainApp({
 
   const [caseWizardNonce, setCaseWizardNonce] = useState(0)
   const [caseWizardHandledNonce, setCaseWizardHandledNonce] = useState(0)
+  const { fillColor, watermark } = useRedactionPrefs()
 
   const [bulkSidebarNotice, setBulkSidebarNotice] = useState<string | null>(null)
   const [bulkSidebarBusy, setBulkSidebarBusy] = useState(false)
@@ -646,43 +647,32 @@ function MainApp({
     }))
   }, [overlayBoxes])
 
-  const onExportPreview = useCallback(async () => {
-    if (!pdfUrl) return
-    try {
-      const bytes = await fetch(pdfUrl).then((r) => r.arrayBuffer())
-      const out = await exportVisualRedactionPreview(bytes, buildExportPages())
-      const blob = new Blob([Uint8Array.from(out)], { type: 'application/pdf' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = selectedDoc?.name ? `preview-${selectedDoc.name}` : 'preview-redacted.pdf'
-      a.click()
-      URL.revokeObjectURL(a.href)
-    } catch (e) {
-      console.error('Preview export failed', e)
-    }
-  }, [buildExportPages, pdfUrl, selectedDoc?.name])
-
-  const onExportRelease = useCallback(async () => {
+  const onExport = useCallback(async () => {
     if (!pdfUrl) return
     const pages = buildExportPages()
     if (pages.every((p) => p.boxes.length === 0)) {
-      window.alert('Add at least one redaction box before using Release export.')
+      window.alert('Add at least one redaction box before exporting.')
       return
     }
     try {
       const bytes = await fetch(pdfUrl).then((r) => r.arrayBuffer())
-      const out = await exportReleaseRedactedPdf(bytes, pages)
+      const out = await exportReleaseRedactedPdf(bytes, pages, {
+        fillColor,
+        watermark: watermark.enabled
+          ? { text: watermark.text, opacity: watermark.opacity }
+          : null,
+      })
       const blob = new Blob([Uint8Array.from(out)], { type: 'application/pdf' })
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
-      a.download = selectedDoc?.name ? `release-${selectedDoc.name}` : 'release-redacted.pdf'
+      a.download = selectedDoc?.name ? `redacted-${selectedDoc.name}` : 'redacted.pdf'
       a.click()
       URL.revokeObjectURL(a.href)
     } catch (e) {
-      console.error('Release export failed', e)
-      window.alert(e instanceof Error ? e.message : 'Release export failed.')
+      console.error('Export failed', e)
+      window.alert(e instanceof Error ? e.message : 'Export failed.')
     }
-  }, [buildExportPages, pdfUrl, selectedDoc?.name])
+  }, [buildExportPages, fillColor, pdfUrl, selectedDoc?.name, watermark])
 
   const uploadFailureNotice =
     uploadError !== null ? (
@@ -938,8 +928,7 @@ function MainApp({
       onRenameDocument={convexReady ? onRenameDocument : undefined}
       onDeleteDocument={convexReady ? onDeleteDocument : undefined}
       draftCount={draftCount}
-      onExportPreview={pdfUrl ? onExportPreview : undefined}
-      onExportRelease={pdfUrl ? onExportRelease : undefined}
+      onExport={pdfUrl ? onExport : undefined}
       exportDisabled={!pdfUrl}
       onTopBarSettingsClick={() => setRoute('settings')}
       onProfileClick={() => setRoute('settings')}

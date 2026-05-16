@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import faviconSrc from './assets/iron-clad-logo.png'
 import { ConvexClientProvider } from './lib/convex.tsx'
+import { RedactionPrefsProvider } from './lib/redactionPrefs.tsx'
 import { ThemeProvider } from './lib/theme.tsx'
 
 function installIronCladFavicon() {
@@ -27,7 +28,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ConvexClientProvider>
       <ThemeProvider>
-        <App />
+        <RedactionPrefsProvider>
+          <App />
+        </RedactionPrefsProvider>
       </ThemeProvider>
     </ConvexClientProvider>
   </StrictMode>,

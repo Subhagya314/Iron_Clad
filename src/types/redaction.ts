@@ -1,3 +1,4 @@
+import { applyRedactionDisplayRect } from '../lib/redactionGeometry'
 import type { NormalizedRect } from '../lib/pdf/coordinateMap'
 
 export type RedactionStatus = 'draft' | 'locked'
@@ -50,11 +51,12 @@ export function toRedactionExportBox(
   box: NormalizedRect & ExemptionSnapshot,
 ): NormalizedRect & { label?: string } {
   const label = exemptionLabelForBox(box)
+  const rect = applyRedactionDisplayRect(box)
   return {
-    x: box.x,
-    y: box.y,
-    width: box.width,
-    height: box.height,
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
     ...(label ? { label } : {}),
   }
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { applyRedactionDisplayRect } from '../../lib/redactionGeometry'
 import type { NormalizedRect } from '../../lib/pdf/coordinateMap'
 import { normalizedToPixelOverlay } from '../../lib/pdf/coordinateMap'
 import type { PageViewportLayout } from '../../lib/pdf/pageViewport'
@@ -23,6 +24,8 @@ type Props = {
   onBoxMove?: (boxId: string, rect: NormalizedRect) => void
   /** When false, boxes do not capture pointer events (text selection mode). */
   boxesInteractive?: boolean
+  /** Fill color for locked (finalized) redaction boxes. */
+  lockedFillColor?: string
 }
 
 export function RedactionOverlay({
@@ -33,6 +36,7 @@ export function RedactionOverlay({
   onBoxSelect,
   onBoxMove,
   boxesInteractive = true,
+  lockedFillColor = '#000000',
 }: Props) {
   const visible = boxes.filter(
     (box) => box.pageNumber === undefined || box.pageNumber === currentPage,
@@ -99,7 +103,7 @@ export function RedactionOverlay({
   return (
     <div className="pointer-events-none absolute inset-0 z-10">
       {visible.map((box) => {
-        const style = normalizedToPixelOverlay(box)
+        const style = normalizedToPixelOverlay(applyRedactionDisplayRect(box))
         const locked = box.status === 'locked'
         const label = exemptionLabelForBox(box)
         const selected = selectedBoxId === box.id
@@ -112,7 +116,7 @@ export function RedactionOverlay({
             role={boxesInteractive && onBoxSelect ? 'button' : undefined}
             tabIndex={boxesInteractive && onBoxSelect ? 0 : undefined}
             className={`absolute box-border rounded-sm ${
-              locked ? 'redaction-confirmed border-black' : 'redaction-suggested'
+              locked ? 'redaction-confirmed' : 'redaction-suggested'
             } ${boxesInteractive && onBoxSelect ? 'pointer-events-auto' : 'pointer-events-none'} ${
               canDrag ? 'cursor-move' : boxesInteractive ? 'cursor-pointer' : ''
             } ${selected ? 'ring-2 ring-primary ring-offset-1' : ''}`}
@@ -121,6 +125,12 @@ export function RedactionOverlay({
               top: style.top,
               width: style.width,
               height: style.height,
+              ...(locked
+                ? {
+                    backgroundColor: lockedFillColor,
+                    borderColor: lockedFillColor,
+                  }
+                : {}),
               transform: isDragging
                 ? `translate(${dragDelta.dx}px, ${dragDelta.dy}px)`
                 : undefined,

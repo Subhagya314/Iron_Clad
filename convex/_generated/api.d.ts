@@ -21,6 +21,7 @@ import type * as lib_accessibleDocuments from "../lib/accessibleDocuments.js";
 import type * as lib_auditLog from "../lib/auditLog.js";
 import type * as lib_sessionHelpers from "../lib/sessionHelpers.js";
 import type * as lib_workspace from "../lib/workspace.js";
+import type * as migrations from "../migrations.js";
 import type * as presence from "../presence.js";
 import type * as redactions from "../redactions.js";
 import type * as session from "../session.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auditLog": typeof lib_auditLog;
   "lib/sessionHelpers": typeof lib_sessionHelpers;
   "lib/workspace": typeof lib_workspace;
+  migrations: typeof migrations;
   presence: typeof presence;
   redactions: typeof redactions;
   session: typeof session;

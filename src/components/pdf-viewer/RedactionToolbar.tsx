@@ -38,7 +38,11 @@ type Props = {
   canDraw: boolean
   hasSelectedBox: boolean
   onDelete?: () => void
+  fillColor: string
+  onFillColorChange: (color: string) => void
 }
+
+const FILL_PRESETS = ['#000000', '#1e293b', '#1e3a5f', '#3f3f46'] as const
 
 export function RedactionToolbar({
   mode,
@@ -46,6 +50,8 @@ export function RedactionToolbar({
   canDraw,
   hasSelectedBox,
   onDelete,
+  fillColor,
+  onFillColorChange,
 }: Props) {
   if (!canDraw) return null
 
@@ -73,6 +79,35 @@ export function RedactionToolbar({
         active={mode === 'move'}
         onClick={() => onModeChange('move')}
       />
+      <span className="mx-0.5 h-6 w-px bg-outline-variant" aria-hidden />
+      <label
+        className="flex items-center gap-1.5 rounded px-1.5 py-0.5 text-on-surface-variant"
+        title="Redaction fill color (locked boxes and export)"
+      >
+        <span className="sr-only">Redaction color</span>
+        <Icon name="format_color_fill" size={18} aria-hidden />
+        <input
+          type="color"
+          value={fillColor}
+          onChange={(e) => onFillColorChange(e.target.value)}
+          className="h-7 w-8 cursor-pointer rounded border border-outline-variant bg-surface p-0.5"
+          aria-label="Pick redaction fill color"
+        />
+      </label>
+      <div className="hidden items-center gap-0.5 sm:flex">
+        {FILL_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            title={`Use ${preset}`}
+            onClick={() => onFillColorChange(preset)}
+            className={`size-5 rounded border ${
+              fillColor.toLowerCase() === preset ? 'ring-2 ring-primary ring-offset-1' : 'border-outline-variant'
+            }`}
+            style={{ backgroundColor: preset }}
+          />
+        ))}
+      </div>
       <span className="mx-0.5 h-6 w-px bg-outline-variant" aria-hidden />
       <ToolButton
         icon="delete"

@@ -20,6 +20,8 @@ import {
   zoomOut,
 } from '../../lib/pdf/zoomConstants'
 import { usePdfDocument } from '../../lib/hooks/usePdfDocument'
+import { REDACTION_DOWNWARD_EXTEND_RATIO } from '../../lib/redactionGeometry'
+import { useRedactionPrefs } from '../../lib/redactionPrefs'
 import { Icon } from '../ui/Icon'
 import { PageNavigator } from './PageNavigator'
 import { RedactionGuidance } from './RedactionGuidance'
@@ -27,6 +29,7 @@ import { PdfPageCanvas, type PageCanvasLayout } from './PdfPageCanvas'
 import { RedactionOverlay, type OverlayBox } from './RedactionOverlay'
 import { RedactionToolbar, type RedactionToolMode } from './RedactionToolbar'
 import { TextSelectionPreview } from './TextSelectionPreview'
+import { WatermarkPreview } from './WatermarkPreview'
 import { ZoomControls } from './ZoomControls'
 
 type Props = {
@@ -62,6 +65,7 @@ export function PdfViewer({
   const [page, setPage] = useState(1)
   const [scale, setScale] = useState(SCALE_DEFAULT)
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null)
+  const { fillColor, setFillColor, watermark } = useRedactionPrefs()
   const [toolMode, setToolMode] = useState<RedactionToolMode>('marquee')
 
   const [textDragStart, setTextDragStart] = useState<{ x: number; y: number } | null>(null)
@@ -353,6 +357,8 @@ export function PdfViewer({
             canDraw={canDraw}
             hasSelectedBox={Boolean(selectedBoxId)}
             onDelete={canPersist && onDeleteBox ? handleDelete : undefined}
+            fillColor={fillColor}
+            onFillColorChange={setFillColor}
           />
           {toolMode === 'select-text' && textLoading && (
             <span className="text-xs text-on-surface-variant">Loading text…</span>
@@ -445,6 +451,9 @@ export function PdfViewer({
                 onPointerCancel={finishTextSelection}
               />
             )}
+            {watermark.enabled && overlayAligned && (
+              <WatermarkPreview text={watermark.text} opacity={watermark.opacity} />
+            )}
             {overlayAligned && (
               <RedactionOverlay
                 boxes={boxes}
@@ -454,6 +463,7 @@ export function PdfViewer({
                 onBoxSelect={canPersist ? setSelectedBoxId : undefined}
                 onBoxMove={canPersist && onMoveBox ? (id, rect) => void onMoveBox(id, rect) : undefined}
                 boxesInteractive={boxesInteractive}
+                lockedFillColor={fillColor}
               />
             )}
             {pageOverlayReady && toolMode === 'select-text' && (
@@ -466,7 +476,7 @@ export function PdfViewer({
                   left: draft.left,
                   top: draft.top,
                   width: draft.width,
-                  height: draft.height,
+                  height: draft.height * (1 + REDACTION_DOWNWARD_EXTEND_RATIO),
                 }}
               />
             )}

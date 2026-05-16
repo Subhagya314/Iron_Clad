@@ -6,8 +6,7 @@ import { Icon } from '../ui/Icon'
 type Props = {
   activeNav: TopNavId | null
   onNavClick: (nav: TopNavId) => void
-  onExportPreview?: () => void
-  onExportRelease?: () => void
+  onExport?: () => void
   exportDisabled?: boolean
   onSettingsClick?: () => void
   /** Avatar opens profile / account settings (same route as sidebar settings). */
@@ -25,8 +24,7 @@ const TOP_LINKS: { id: TopNavId; label: string }[] = [
 export function TopAppBar({
   activeNav,
   onNavClick,
-  onExportPreview,
-  onExportRelease,
+  onExport,
   exportDisabled,
   onSettingsClick,
   onProfileClick,
@@ -52,12 +50,8 @@ export function TopAppBar({
         </nav>
       </div>
       <div className="flex items-center gap-3">
-        {onExportPreview && onExportRelease ? (
-          <ExportCaseMenu
-            disabled={exportDisabled}
-            onPreviewExport={onExportPreview}
-            onReleaseExport={onExportRelease}
-          />
+        {onExport ? (
+          <ExportCaseMenu disabled={exportDisabled} onExport={onExport} />
         ) : null}
         {onSettingsClick ? (
           <button

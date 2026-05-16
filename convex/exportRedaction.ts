@@ -4,7 +4,7 @@ import { normalizeEmail } from "./lib/access";
 
 /**
  * Phase B stub: server-side release export with true content removal.
- * Client should use exportVisualRedactionPreview until this is implemented.
+ * Client uses browser export (exportReleaseRedactedPdf) until this is implemented.
  */
 export const requestReleaseExport = action({
   args: {
@@ -16,7 +16,7 @@ export const requestReleaseExport = action({
     if (!u.includes("@")) throw new Error("Invalid email");
 
     throw new Error(
-      "Release-ready export is not available yet. It will remove underlying PDF text and sanitize metadata. Use Preview export for visual blackout only.",
+      "Server-side export is not available yet. It will remove underlying PDF text and sanitize metadata. Use the in-app Export button for now.",
     );
   },
 });
