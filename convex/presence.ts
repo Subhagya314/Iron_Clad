@@ -1,19 +1,23 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 const PRESENCE_STALE_MS = 60_000;
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export const heartbeat = mutation({
   args: {
+    userEmail: v.string(),
     displayName: v.optional(v.string()),
     color: v.optional(v.string()),
     documentId: v.optional(v.id("documents")),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new Error("Not authenticated");
+    const userId = normalizeEmail(args.userEmail);
+    if (!userId.includes("@")) {
+      throw new Error("Invalid email");
     }
     const now = Date.now();
     const existing = await ctx.db
@@ -42,12 +46,9 @@ export const heartbeat = mutation({
 });
 
 export const leaveDocument = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
-      throw new Error("Not authenticated");
-    }
+  args: { userEmail: v.string() },
+  handler: async (ctx, { userEmail }) => {
+    const userId = normalizeEmail(userEmail);
     const existing = await ctx.db
       .query("presencePeers")
       .withIndex("by_userId", (q) => q.eq("userId", userId))

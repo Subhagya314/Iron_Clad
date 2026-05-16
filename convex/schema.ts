@@ -1,14 +1,21 @@
 import { defineSchema, defineTable } from "convex/server";
-import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  ...authTables,
+  exemptionCodes: defineTable({
+    shortCode: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    category: v.optional(v.string()),
+    sortOrder: v.number(),
+    isActive: v.boolean(),
+  }).index("by_active_sort", ["isActive", "sortOrder"]),
 
   documents: defineTable({
     storageId: v.id("_storage"),
     name: v.string(),
-    createdBy: v.optional(v.id("users")),
+    /** Self-declared email (no verification). */
+    createdBy: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_createdAt", ["createdAt"]),
 
@@ -21,15 +28,20 @@ export default defineSchema({
     width: v.number(),
     height: v.number(),
     status: v.union(v.literal("draft"), v.literal("locked")),
-    userId: v.id("users"),
+    /** Self-declared user email (no verification). */
+    userId: v.string(),
     updatedAt: v.number(),
+    exemptionCodeId: v.optional(v.id("exemptionCodes")),
+    exemptionShortCodeSnapshot: v.optional(v.string()),
+    exemptionTitleSnapshot: v.optional(v.string()),
   })
     .index("by_document", ["documentId"])
     .index("by_document_page", ["documentId", "pageNumber"])
     .index("by_user_document", ["userId", "documentId"]),
 
   presencePeers: defineTable({
-    userId: v.id("users"),
+    /** Self-declared user email (no verification). */
+    userId: v.string(),
     displayName: v.optional(v.string()),
     documentId: v.optional(v.id("documents")),
     color: v.optional(v.string()),

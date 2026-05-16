@@ -11,8 +11,6 @@
     "convex:dev": "convex dev"
   },
   "dependencies": {
-    "@auth/core": "^0.37.0",
-    "@convex-dev/auth": "^0.0.92",
     "convex": "^1.39.1",
     "lucide-react": "^1.16.0",
     "pdf-lib": "^1.17.1",

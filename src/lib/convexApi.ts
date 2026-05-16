@@ -8,6 +8,13 @@ export const api = {
     generateUploadUrl: makeFunctionReference<'mutation'>('documents:generateUploadUrl'),
     getFileUrl: makeFunctionReference<'query'>('documents:getFileUrl'),
   },
+  exemptionCodes: {
+    list: makeFunctionReference<'query'>('exemptionCodes:list'),
+    create: makeFunctionReference<'mutation'>('exemptionCodes:create'),
+    update: makeFunctionReference<'mutation'>('exemptionCodes:update'),
+    archive: makeFunctionReference<'mutation'>('exemptionCodes:archive'),
+    seedDefaults: makeFunctionReference<'mutation'>('exemptionCodes:seedDefaults'),
+  },
   redactions: {
     listByDocument: makeFunctionReference<'query'>('redactions:listByDocument'),
     createBox: makeFunctionReference<'mutation'>('redactions:createBox'),
@@ -18,8 +25,5 @@ export const api = {
     heartbeat: makeFunctionReference<'mutation'>('presence:heartbeat'),
     leaveDocument: makeFunctionReference<'mutation'>('presence:leaveDocument'),
     listPresentInDocument: makeFunctionReference<'query'>('presence:listPresentInDocument'),
-  },
-  profile: {
-    current: makeFunctionReference<'query'>('profile:current'),
   },
 } as const
