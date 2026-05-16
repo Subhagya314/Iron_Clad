@@ -126,6 +126,10 @@ function MainApp({
 
   const teamsWithCases = useQuery(api.teams.listTeamsWithCases, convexReady ? { sessionToken } : 'skip')
 
+  useEffect(() => {
+    if (!convexReady || teamsWithCases === undefined || teamsWithCases.length > 0) return
+    void bootstrapPreferredCase({ sessionToken }).catch(() => {})
+  }, [bootstrapPreferredCase, convexReady, sessionToken, teamsWithCases])
   const teamsPayload: TeamsWithCasesPayload[] = useMemo(
     () => teamsWithCases ?? [],
     [teamsWithCases],

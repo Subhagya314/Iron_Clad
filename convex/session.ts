@@ -41,7 +41,7 @@ export const getSession = query({
     const s = await getSessionDoc(ctx, sessionToken);
     if (!s) return null;
     return {
-      email: s.email,
+      email: normalizeEmail(s.email),
       displayName: s.displayName ?? null,
       preferredUploadCaseId: s.preferredUploadCaseId ?? null,
       expiresAt: s.expiresAt,
@@ -56,11 +56,13 @@ export const bootstrapPreferredCaseIfNeeded = mutation({
     const s = await getSessionDoc(ctx, sessionToken);
     if (!s) throw new Error("Unauthorized");
 
-    await ensureSoloTeamAndDefaultCase(ctx, s.email);
+    const owner = normalizeEmail(s.email);
+
+    await ensureSoloTeamAndDefaultCase(ctx, owner);
     let next = s.preferredUploadCaseId;
-    let valid = next ? await canAccessCase(ctx, s.email, next) : false;
+    let valid = next ? await canAccessCase(ctx, owner, next) : false;
     if (!valid) {
-      const { defaultCaseId } = await ensureSoloTeamAndDefaultCase(ctx, s.email);
+      const { defaultCaseId } = await ensureSoloTeamAndDefaultCase(ctx, owner);
       next = defaultCaseId;
       await ctx.db.patch(s._id, { preferredUploadCaseId: next });
     }
@@ -100,7 +102,7 @@ export const setPreferredUploadCase = mutation({
   handler: async (ctx, { sessionToken, caseId }) => {
     const session = await getSessionDoc(ctx, sessionToken);
     if (!session) throw new Error("Unauthorized");
-    const email = session.email;
+    const email = normalizeEmail(session.email);
 
     const ok = await canAccessCase(ctx, email, caseId);
     if (!ok) throw new Error("Forbidden");

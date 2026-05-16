@@ -1,5 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { normalizeEmail } from "./access";
 
 type Ctx = QueryCtx | MutationCtx;
 
@@ -18,5 +19,5 @@ export async function getSessionDoc(ctx: Ctx, sessionToken: string): Promise<Doc
 export async function requireUserEmail(ctx: Ctx, sessionToken: string): Promise<string> {
   const session = await getSessionDoc(ctx, sessionToken);
   if (!session) throw new Error("Unauthorized");
-  return session.email;
+  return normalizeEmail(session.email);
 }

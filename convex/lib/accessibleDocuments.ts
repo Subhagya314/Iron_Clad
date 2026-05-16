@@ -1,15 +1,17 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { normalizeEmail } from "./access";
 
 type Ctx = QueryCtx | MutationCtx;
 
 /** Documents reachable via team membership cases (solo + collab); sorted newest first. */
 export async function listAccessibleDocuments(ctx: Ctx, u: string): Promise<Doc<"documents">[]> {
-  if (!u.includes("@")) return [];
+  const user = normalizeEmail(u);
+  if (!user.includes("@")) return [];
 
   const memberships = await ctx.db
     .query("teamMembers")
-    .withIndex("by_user", (q) => q.eq("userId", u))
+    .withIndex("by_user", (q) => q.eq("userId", user))
     .collect();
 
   const caseIds = new Set<string>();

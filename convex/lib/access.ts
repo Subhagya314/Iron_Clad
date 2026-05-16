@@ -12,9 +12,10 @@ export async function isTeamMember(
   userEmail: string,
   teamId: Id<"teams">,
 ): Promise<boolean> {
+  const email = normalizeEmail(userEmail);
   const row = await ctx.db
     .query("teamMembers")
-    .withIndex("by_team_and_user", (q) => q.eq("teamId", teamId).eq("userId", userEmail))
+    .withIndex("by_team_and_user", (q) => q.eq("teamId", teamId).eq("userId", email))
     .unique();
   return row !== null;
 }
@@ -29,9 +30,10 @@ async function getTeamIdForCase(
 
 /** Caller must have trimmed session; returns false if unknown case. */
 export async function canAccessCase(ctx: Ctx, userEmail: string, caseId: Id<"cases">): Promise<boolean> {
+  const email = normalizeEmail(userEmail);
   const teamId = await getTeamIdForCase(ctx, caseId);
   if (!teamId) return false;
-  return await isTeamMember(ctx, userEmail, teamId);
+  return await isTeamMember(ctx, email, teamId);
 }
 
 export async function canAccessDocument(

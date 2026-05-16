@@ -73,7 +73,7 @@ export const listTeamsWithCases = query({
       caseDocs.sort((a, b) => {
         if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
         if (b.createdAt !== a.createdAt) return b.createdAt - a.createdAt;
-        return a.name.localeCompare(b.name);
+        return String(a.name).localeCompare(String(b.name));
       });
 
       out.push({

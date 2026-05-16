@@ -72,6 +72,21 @@ export async function ensureSoloTeamAndDefaultCase(
     defaultCaseId = await insertDefaultCaseForTeam(ctx, teamId, userEmail);
   }
 
+  const membership = await ctx.db
+    .query("teamMembers")
+    .withIndex("by_team_and_user", (q) =>
+      q.eq("teamId", teamId).eq("userId", userEmail),
+    )
+    .unique();
+  if (!membership) {
+    await ctx.db.insert("teamMembers", {
+      teamId,
+      userId: userEmail,
+      role: "admin",
+      joinedAt: Date.now(),
+    });
+  }
+
   return { teamId, defaultCaseId };
 }
 

@@ -1,4 +1,4 @@
-const LOGO_PUBLIC_PATH = '/iron-clad-logo.png'
+import logoSrcUrl from '../../assets/iron-clad-logo.png'
 
 type Props = {
   className?: string
@@ -13,7 +13,7 @@ export function IronCladLogo({ className, imgClassName }: Props) {
   return (
     <span className={`inline-flex shrink-0 items-center ${className ?? ''}`}>
       <img
-        src={LOGO_PUBLIC_PATH}
+        src={logoSrcUrl}
         alt="Iron Clad"
         decoding="async"
         className={`h-9 w-auto max-h-11 max-w-[min(100%,280px)] object-contain object-left dark:invert ${imgClassName ?? ''}`}
